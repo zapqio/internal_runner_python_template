@@ -1,0 +1,8 @@
+stages: [test]
+
+python:
+  stage: test
+  image: python:3.13-slim
+  script:
+    - python -m compileall -q methods lib tools tests
+    - python -m unittest discover -s tests -v

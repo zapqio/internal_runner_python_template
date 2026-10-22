@@ -1,0 +1,7 @@
+{
+  "formatVersion": 1,
+  "name": "Python module",
+  "description": "Python module with example method, tests and CI.",
+  "kind": "Python",
+  "branch": "main"
+}
