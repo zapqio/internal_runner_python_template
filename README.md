@@ -2,7 +2,7 @@
 
 Gotowy punkt startowy dla repozytorium typu **Python** wykonywanego przez wewnętrznego runnera Zapqio.
 
-Przykład udostępnia metodę `template-hello`. Przyjmuje imię w JSON, zapisuje komunikat w logu i zwraca powitanie jako tekst JSON. Działa bez dodatkowych bibliotek i bez sekretów. Opcjonalnie pokazuje odczyt sekretnej stałej.
+Szablon udostępnia dwie metody: `template-add-numbers` dodaje dwie liczby, a `template-hello` zwraca powitanie. Obie przyjmują i zwracają tekst JSON, zapisują komunikat w logu i działają bez dodatkowych bibliotek oraz sekretów. Metoda powitania opcjonalnie pokazuje odczyt sekretnej stałej.
 
 ## Szybki start
 
@@ -12,7 +12,7 @@ Przykład udostępnia metodę `template-hello`. Przyjmuje imię w JSON, zapisuje
 
    ```sh
    python -m unittest discover -s tests -v
-   python tools/run_local.py --input examples/input.json
+   python tools/run_local.py --method template-add-numbers --input examples/add-numbers-input.json
    ```
 
    Na systemach, gdzie interpreter nazywa się `python3`, użyj `python3` zamiast `python`.
@@ -22,40 +22,63 @@ Przykład udostępnia metodę `template-hello`. Przyjmuje imię w JSON, zapisuje
    - rodzaj **Python**;
    - gałąź **main** lub inną faktycznie używaną gałąź;
    - dla prywatnego repozytorium również token z dostępem do jego odczytu.
-5. Pobierz migawkę. Na szczegółach repozytorium sprawdź status struktury.
-6. Otwórz **Runnery → Wewnętrzne → wybrany runner → Wdrożenia** i kliknij **Wdróż**.
-7. Dodaj do pipeline'u krok z metodą `template-hello` i runnerem wewnętrznym.
+5. Na szczegółach repozytorium sprawdź pobraną wersję i status struktury.
+6. Otwórz **Runnery**, wybierz runnera wewnętrznego i przejdź do **Moduły**. Przy swoim repozytorium kliknij **Wgraj**.
+7. Dodaj do potoku krok z metodą `template-add-numbers` i tym samym runnerem wewnętrznym.
 8. Przekaż do kroku:
 
    ```json
-   {"name": "Anna"}
+   {"a": 2, "b": 3}
    ```
 
 Oczekiwany wynik:
 
 ```json
-{"message": "Cześć, Anna!", "secret_loaded": false}
+{"sum": 5}
 ```
 
-Samo podłączenie repozytorium lub pobranie migawki nie wdraża metod na runnera.
+Samo podłączenie repozytorium lub pobranie migawki nie udostępnia metod na runnerze. Wymagane jest pomyślne wgranie modułu.
+
+## Dodawanie liczb
+
+Metoda [template-add-numbers](methods/template-add-numbers.py) wymaga obiektu JSON z polami `a` i `b`. Oba pola muszą być skończonymi liczbami. Obsługuje zero, liczby ujemne i ułamki. Odrzuca brakujące pola, tekst (np. `"2"`), wartości logiczne, `null` i liczby nieskończone. Sprawdza też, czy suma jest skończona.
+
+```sh
+python tools/run_local.py --method template-add-numbers --input examples/add-numbers-input.json
+```
+
+Dla `{"a": 2, "b": 3}` zwraca `{"sum": 5}`. W logu zapisuje `Numbers added.`. Nie wymaga stałych ani zewnętrznych połączeń. Liczby ułamkowe korzystają ze standardowej arytmetyki zmiennoprzecinkowej Pythona.
+
+## Powitanie
+
+Metoda `template-hello` pozostaje przykładem użycia biblioteki z repozytorium i opcjonalnego sekretu. Dla `{"name": "Anna"}` zwraca `{"message": "Cześć, Anna!", "secret_loaded": false}`.
+
+```sh
+python tools/run_local.py --input examples/input.json
+```
 
 ## Struktura repozytorium
 
 ```text
 .
 ├── methods/
+│   ├── template-add-numbers.py    # metoda sumująca dwie liczby
+│   ├── template-add-numbers.json  # opis wejścia i wyjścia sumowania
 │   ├── template-hello.py          # metoda widoczna w platformie
 │   └── template-hello.json        # timeout i opis wejścia/wyjścia
 ├── lib/
 │   ├── __init__.py
 │   └── greetings.py               # kod pomocniczy importowany przez metodę
 ├── examples/
+│   ├── add-numbers-input.json
+│   ├── add-numbers-output.json
 │   ├── input.json
 │   ├── input-with-secret.json
 │   └── output.json
 ├── tools/
 │   └── run_local.py               # uruchomienie lokalne z zastępczym runtime
 ├── tests/
+│   ├── test_add_numbers.py
 │   └── test_template.py
 └── .github/workflows/check.yml    # sprawdzenie składni i testy
 ```
@@ -64,7 +87,7 @@ Wymagania dla repozytorium Python:
 
 - Co najmniej jeden plik `methods/*.py`, bezpośrednio w katalogu `methods/`. Sam plik `hello.py` w katalogu głównym albo `methods/nested/hello.py` nie definiuje metody.
 - Nazwa pliku bez `.py` jest nazwą metody. Używaj małych liter ASCII i cyfr, ewentualnie pojedynczych separatorów `-` lub `_`; maksymalnie 64 znaki. Przykłady: `template-hello`, `erp_invoice`.
-- Nazwy metod muszą być unikalne wśród repozytoriów wdrożonych na danym runnerze. Przed wdrożeniem kilku kopii tego szablonu zmień nazwę pliku `.py` i odpowiadającego mu `.json`.
+- Nazwy metod muszą być unikalne wśród repozytoriów zainstalowanych na danym runnerze. Przed wgraniem kilku kopii tego szablonu zmień nazwę pliku `.py` i odpowiadającego mu `.json`.
 - Kod i metadane zapisuj w UTF-8. W kontenerze Linux wielkość liter w ścieżkach ma znaczenie.
 - Plik metadanych jest opcjonalny. Jeśli go dodasz, musi mieć identyczną nazwę jak metoda: `methods/template-hello.json` pasuje do `methods/template-hello.py`.
 - Nie dodawaj plików metadanych w `methods/`, które nie mają odpowiadającego im pliku `.py`.
@@ -158,7 +181,7 @@ Aby sprawdzić opcjonalny wariant przykładu:
 
 Repozytorium zawiera wyłącznie nazwę stałej. Wartość pochodzi z kontekstu wykonania dostarczanego przez platformę. Token GitHub służący do pobierania repozytorium jest oddzielnym ustawieniem; nie wpisuj go do skryptu.
 
-Nie zapisuj sekretów w kodzie, plikach `.env`, logach ani wynikach kroku. Platforma pobiera pliki repozytorium, więc sekret przypadkowo dodany do Gita też znalazłby się w migawce. Nie ma automatycznego maskowania wartości zapisanych przez skrypt — za treść logów i wyniku odpowiada autor modułu.
+Nie zapisuj sekretów w kodzie, plikach `.env`, logach ani wynikach kroku. Platforma pobiera pliki repozytorium, więc sekret przypadkowo dodany do Gita też znalazłby się w migawce. Nie ma automatycznego maskowania wartości zapisanych przez skrypt. Za treść logów i wyniku odpowiada autor modułu.
 
 ## Logowanie i kontekst wykonania
 
@@ -204,23 +227,23 @@ python tools/run_local.py --method moja-metoda --input examples/input.json
 
 Narzędzie lokalne obsługuje synchroniczne `run(data)`, jak w tym szablonie. Nie odtwarza izolacji kontenera ani limitów czasu. Po zmianach wykonaj również próbę w Zapqio.
 
-Workflow GitHub Actions sprawdza składnię i uruchamia testy na Pythonie 3.11, 3.12, 3.13 i 3.14. Korzysta z oficjalnych akcji [checkout](https://github.com/actions/checkout) i [setup-python](https://github.com/actions/setup-python). CI nie wdraża automatycznie kodu na runnera.
+Workflow GitHub Actions sprawdza składnię i uruchamia testy na Pythonie 3.11, 3.12, 3.13 i 3.14. Korzysta z oficjalnych akcji [checkout](https://github.com/actions/checkout) i [setup-python](https://github.com/actions/setup-python). CI nie wgrywa automatycznie kodu na runnera.
 
 ## Aktualizowanie modułu
 
 1. Zmień kod i metadane, uruchom testy, wykonaj commit i push na gałąź podłączoną w Zapqio.
-2. Otwórz panel repozytorium lub wdrożeń albo kliknij **Sprawdź aktualizacje**.
-3. Na runnerze wybierz **Aktualizuj**.
-4. Uruchom pipeline i sprawdź wynik.
+2. Otwórz szczegóły repozytorium lub widok **Moduły** albo kliknij **Sprawdź aktualizacje**.
+3. W widoku **Moduły** wybierz **Wgraj aktualizację**.
+4. Uruchom potok i sprawdź wynik.
 
-Push do Gita nie jest automatycznym wdrożeniem. Nowy krok oraz ponowienie korzystają z aktualnie wdrożonej wersji. Trwająca próba kończy się na wersji wybranej przy swoim starcie. Zapqio zapisuje faktycznie użyty commit dla każdej próby.
+Push do Gita nie wgrywa automatycznie modułu na runnera. Nowy krok oraz ponowienie korzystają z aktualnie zainstalowanej wersji. Trwająca próba kończy się na wersji wybranej przy swoim starcie. Zapqio zapisuje faktycznie użyty commit dla każdej próby.
 
 ## Najczęstsze problemy
 
 | Objaw | Co sprawdzić |
 | --- | --- |
 | Niepoprawna struktura migawki | Plik `.py` musi leżeć bezpośrednio w `methods/`. |
-| Metoda nie pojawia się w pipeline | Sprawdź wdrożenie na odpowiednim runnerze oraz jego dostępność. |
+| Metoda nie pojawia się w potoku | Sprawdź wgranie modułu na odpowiednim runnerze oraz jego dostępność. |
 | Błąd walidacji kodu | Sprawdź składnię wszystkich plików `.py` i funkcję `run(data)` w każdej metodzie. |
 | Błąd metadanych | Sprawdź JSON, nazwę odpowiadającego pliku `.py` i zakres `timeoutSeconds`. |
 | Inne repozytorium udostępnia tę samą metodę | Zmień nazwę metody oraz pliku metadanych. |

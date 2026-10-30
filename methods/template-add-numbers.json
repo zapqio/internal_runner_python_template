@@ -1,0 +1,29 @@
+{
+  "timeoutSeconds": 10,
+  "in": {
+    "type": "object",
+    "properties": {
+      "a": {
+        "type": "number"
+      },
+      "b": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "a",
+      "b"
+    ]
+  },
+  "out": {
+    "type": "object",
+    "properties": {
+      "sum": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "sum"
+    ]
+  }
+}
